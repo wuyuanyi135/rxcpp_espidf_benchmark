@@ -25,6 +25,13 @@ extern "C" [[noreturn]] void app_main(void) {
         TIMERG0.wdt_wprotect = 0;
       });
 
+  rx::sources::interval(chrono::milliseconds(200), worker)
+      .subscribe([](int v) {
+        std::cout << "Free heap: " << xPortGetFreeHeapSize() << "\t"
+                  << "Stack watermark: " << uxTaskGetStackHighWaterMark(NULL)
+                  << std::endl;
+      });
+
   rx::sources::interval(chrono::milliseconds(10), worker)
       .map([](int v) {
         return v * 50;
@@ -35,19 +42,20 @@ extern "C" [[noreturn]] void app_main(void) {
       .subscribe([&](int i) {
         // No copy
         wait_then_report_delay(i, worker)
-            .subscribe([i](const WaitThenReportStatesPtr& states) {
-              std::cout << i << ","
-                        << chrono::duration_cast<chrono::microseconds>(states->second_time - states->first_time).count() - i
-                        << std::endl;
-            });
+            .subscribe(
+                [i](const WaitThenReportStatesPtr& states) {
+                  std::cout << i << ","
+                            << chrono::duration_cast<chrono::microseconds>(states->second_time - states->first_time).count() - i
+                            << std::endl;
+                });
 
         // Copy
-//        wait_then_report_delay_copy(i, worker)
-//            .subscribe([i](const WaitThenReportStates& states) {
-//              std::cout << i << ","
-//                        << chrono::duration_cast<chrono::microseconds>(states.second_time - states.first_time).count() - i
-//                        << std::endl;
-//            });
+        //        wait_then_report_delay_copy(i, worker)
+        //            .subscribe([i](const WaitThenReportStates& states) {
+        //              std::cout << i << ","
+        //                        << chrono::duration_cast<chrono::microseconds>(states.second_time - states.first_time).count() - i
+        //                        << std::endl;
+        //            });
       });
 
   while (true) {
